@@ -19,9 +19,6 @@ const friendsTable = db.collection("friends");
 
 app.use(cors({ origin: true }));
 
-app.get("/hello-world", (req, res) => {
-  return res.status(200).send("Hello World!");
-});
 app.get("/user", async (req, res) => {
   const email = req.query.email;
   try {
