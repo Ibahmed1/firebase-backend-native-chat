@@ -20,20 +20,53 @@ const friendsTable = db.collection("friends");
 app.use(cors({ origin: true }));
 
 app.get("/user", async (req, res) => {
-  const email = req.query.email;
-  try {
-    const user = await getAuth().getUserByEmail(email);
-    return res.status(200).json(user);
-  } catch (error) {
-    return res.status(500).json({ error: error });
-  }
+  const { email, id } = req.query;
+  if (email)
+    try {
+      const user = await getAuth().getUserByEmail(email);
+      return res.status(200).json(user);
+    } catch (error) {
+      return res.status(500).json({ error: error });
+    }
+  else if (id)
+    try {
+      const user = await getAuth().getUser(id);
+      return res.status(200).json({ email: user.email });
+    } catch (error) {
+      return res.status(500).json({ error: error });
+    }
 });
 app.post("/friends", addFriend);
 app.get("/friends", getFriends);
 
 async function getFriends(req, res) {
   const userEmail = req.query.email;
-  const user = (await getAuth().getUserByEmail(userEmail)).uid;
+  const userId = (await getAuth().getUserByEmail(userEmail)).uid;
+  const friends1 = await friendsTable.where("user_one_id", "==", userId).get();
+  const friends2 = await friendsTable.where("user_two_id", "==", userId).get();
+  let friendsArray = [];
+  friends1.forEach((doc) => {
+    let friend = doc.data();
+    friend["id"] = doc.id;
+    friendsArray.push(friend);
+  });
+  friends2.forEach((doc) => {
+    let friend = doc.data();
+    friend["id"] = doc.id;
+    friendsArray.push(friend);
+  });
+  friendsArray.forEach((friend) => {
+    if (friend["user_one_id"] === userId) {
+      delete friend["user_one_id"];
+      friend["friend_id"] = friend["user_two_id"];
+      delete friend["user_two_id"];
+    } else if (friend["user_two_id"] === userId) {
+      delete friend["user_two_id"];
+      friend["friend_id"] = friend["user_one_id"];
+      delete friend["user_one_id"];
+    }
+  });
+  return res.status(200).json({ friends: friendsArray });
 }
 
 async function addFriend(req, res) {
