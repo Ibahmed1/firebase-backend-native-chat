@@ -38,6 +38,43 @@ app.get("/user", async (req, res) => {
 });
 app.post("/friends", addFriend);
 app.get("/friends", getFriends);
+app.post("/messages", addMessage);
+app.get("/messages", getMessages);
+
+async function getMessages(req, res) {
+  const { userEmail, friendEmail } = req.body;
+  const userId = (await getAuth().getUserByEmail(userEmail)).uid;
+  const friendId = (await getAuth().getUserByEmail(friendEmail)).uid;
+
+  const messagesSent = await messagesTable
+    .where("sender_id", "==", userId)
+    .where("receiver_id", "==", friendId)
+    .orderBy("created_at", "asc")
+    .get();
+  const messagesReceived = await messagesTable
+    .where("sender_id", "==", friendId)
+    .where("receiver_id", "==", userId)
+    .orderBy("created_at", "asc")
+    .get();
+}
+
+async function addMessage(req, res) {
+  const { message, senderEmail, receiverEmail } = req.body;
+  const senderId = (await getAuth().getUserByEmail(senderEmail)).uid;
+  const receiverId = (await getAuth().getUserByEmail(receiverEmail)).uid;
+
+  try {
+    const response = await messagesTable.add({
+      created_at: Timestamp.now(),
+      message_text: message,
+      sender_id: senderId,
+      receiver_id: receiverId,
+    });
+    return res.status(200).json({ message: "Message sent" });
+  } catch (error) {
+    return res.status(500).json({ error: error });
+  }
+}
 
 async function getFriends(req, res) {
   const userEmail = req.query.email;
@@ -83,7 +120,7 @@ async function addFriend(req, res) {
     .get();
   if (friendsCheck1.empty && friendsCheck2.empty)
     try {
-      const res = await friendsTable.add({
+      const response = await friendsTable.add({
         created_at: Timestamp.now(),
         user_one_id: userOneId,
         user_two_id: userTwoId,
