@@ -19,7 +19,13 @@ const friendsTable = db.collection("friends");
 
 app.use(cors({ origin: true }));
 
-app.get("/user", async (req, res) => {
+app.get("/user", getUser);
+app.post("/friends", addFriend);
+app.get("/friends", getFriends);
+app.post("/messages", addMessage);
+app.get("/messages", getMessages);
+
+async function getUser(req, res) {
   const { email, id } = req.query;
   if (email)
     try {
@@ -35,11 +41,7 @@ app.get("/user", async (req, res) => {
     } catch (error) {
       return res.status(500).json({ error: error });
     }
-});
-app.post("/friends", addFriend);
-app.get("/friends", getFriends);
-app.post("/messages", addMessage);
-app.get("/messages", getMessages);
+}
 
 async function getMessages(req, res) {
   const { userEmail, friendEmail } = req.body;
