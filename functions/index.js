@@ -16,6 +16,7 @@ admin.initializeApp({
 const db = getFirestore();
 const messagesTable = db.collection("messages");
 const friendsTable = db.collection("friends");
+const chatsTable = db.collection("chats");
 
 app.use(cors({ origin: true }));
 
@@ -44,20 +45,34 @@ async function getUser(req, res) {
 }
 
 async function getMessages(req, res) {
-  const { userEmail, friendEmail } = req.body;
+  const { userEmail, friendEmail } = req.query;
   const userId = (await getAuth().getUserByEmail(userEmail)).uid;
   const friendId = (await getAuth().getUserByEmail(friendEmail)).uid;
 
-  const messagesSent = await messagesTable
+  const messagesSentQuery = await messagesTable
     .where("sender_id", "==", userId)
     .where("receiver_id", "==", friendId)
     .orderBy("created_at", "asc")
     .get();
-  const messagesReceived = await messagesTable
+  const messagesReceivedQuery = await messagesTable
     .where("sender_id", "==", friendId)
     .where("receiver_id", "==", userId)
     .orderBy("created_at", "asc")
     .get();
+
+  let messagesSent = [];
+  let messagesReceived = [];
+
+  messagesSentQuery.forEach((doc) => {
+    messagesSent.push(doc.data());
+  });
+
+  messagesReceivedQuery.forEach((doc) => {
+    messagesReceived.push(doc.data());
+  });
+
+  // console.log(messagesSent);
+  return;
 }
 
 async function addMessage(req, res) {
@@ -65,16 +80,56 @@ async function addMessage(req, res) {
   const senderId = (await getAuth().getUserByEmail(senderEmail)).uid;
   const receiverId = (await getAuth().getUserByEmail(receiverEmail)).uid;
 
-  try {
-    const response = await messagesTable.add({
-      created_at: Timestamp.now(),
-      message_text: message,
-      sender_id: senderId,
-      receiver_id: receiverId,
-    });
-    return res.status(200).json({ message: "Message sent" });
-  } catch (error) {
-    return res.status(500).json({ error: error });
+  const chat1 = await chatsTable.doc(senderId + receiverId).get();
+  const chat2 = await chatsTable.doc(receiverId + senderId).get();
+
+  if (chat1.exists) {
+    try {
+      let messages = chat1.data().messages;
+      const newMessage = {
+        sent_at: Date.now(),
+        sender_id: senderId,
+        message: message,
+      };
+      messages.push(newMessage);
+      await chatsTable.doc(senderId + receiverId).update({
+        messages: messages,
+      });
+      return res.status(200).json({ message: "message sent" });
+    } catch (error) {
+      return res.status(500).json({ error: error });
+    }
+  } else if (chat2.exists) {
+    try {
+      let messages = chat2.data().messages;
+      const newMessage = {
+        sent_at: Date.now(),
+        sender_id: senderId,
+        message: message,
+      };
+      messages.push(newMessage);
+      await chatsTable.doc(receiverId + senderId).update({
+        messages: messages,
+      });
+      return res.status(200).json({ message: "message sent" });
+    } catch (error) {
+      return res.status(500).json({ error: error });
+    }
+  } else {
+    try {
+      const response = await chatsTable.doc(senderId + receiverId).set({
+        messages: [
+          {
+            sent_at: Date.now(),
+            sender_id: senderId,
+            message: message,
+          },
+        ],
+      });
+      return res.status(200).json({ message: "Message added" });
+    } catch (error) {
+      return res.status(500).json({ error: error });
+    }
   }
 }
 
