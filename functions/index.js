@@ -49,30 +49,18 @@ async function getMessages(req, res) {
   const userId = (await getAuth().getUserByEmail(userEmail)).uid;
   const friendId = (await getAuth().getUserByEmail(friendEmail)).uid;
 
-  const messagesSentQuery = await messagesTable
-    .where("sender_id", "==", userId)
-    .where("receiver_id", "==", friendId)
-    .orderBy("created_at", "asc")
-    .get();
-  const messagesReceivedQuery = await messagesTable
-    .where("sender_id", "==", friendId)
-    .where("receiver_id", "==", userId)
-    .orderBy("created_at", "asc")
-    .get();
+  const chat1 = await chatsTable.doc(userId + friendId).get();
+  const chat2 = await chatsTable.doc(friendId + userId).get();
 
-  let messagesSent = [];
-  let messagesReceived = [];
-
-  messagesSentQuery.forEach((doc) => {
-    messagesSent.push(doc.data());
-  });
-
-  messagesReceivedQuery.forEach((doc) => {
-    messagesReceived.push(doc.data());
-  });
-
-  // console.log(messagesSent);
-  return;
+  if (chat1.exists) {
+    const messages = chat1.data().messages;
+    return res.status(200).json({ messages: messages });
+  } else if (chat2.exists) {
+    const messages = chat2.data().messages;
+    return res.status(200).json({ messages: messages });
+  } else {
+    return res.status(200).json({ error: "no messages" });
+  }
 }
 
 async function addMessage(req, res) {
@@ -83,7 +71,7 @@ async function addMessage(req, res) {
   const chat1 = await chatsTable.doc(senderId + receiverId).get();
   const chat2 = await chatsTable.doc(receiverId + senderId).get();
 
-  if (chat1.exists) {
+  if (chat1.exists && message.length !== 0) {
     try {
       let messages = chat1.data().messages;
       const newMessage = {
@@ -99,7 +87,7 @@ async function addMessage(req, res) {
     } catch (error) {
       return res.status(500).json({ error: error });
     }
-  } else if (chat2.exists) {
+  } else if (chat2.exists && message.length !== 0) {
     try {
       let messages = chat2.data().messages;
       const newMessage = {
