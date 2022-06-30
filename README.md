@@ -8,4 +8,4 @@ This is the backend of the app which deals with all queries to the firebase clou
 
 ## In progress
 
-Currently in progress is creating the get to the /messages endpoint which will expect a user and a friend email from a fetch request from the frontend. Using these emails, a query will be made to the messages database and will return an array (ordered by sent_at) containing all messages (and who sent/received them) between the two users.
+Nothing currently in progress
