@@ -1,7 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { getAuth } = require("firebase-admin/auth");
-const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const express = require("express");
 const cors = require("cors");
 const app = express();
