@@ -54,10 +54,10 @@ async function getMessages(req, res) {
 
   if (chat1.exists) {
     const messages = chat1.data().messages;
-    return res.status(200).json({ messages: messages });
+    return res.status(200).json({ messages: messages, docId: userId + friendId });
   } else if (chat2.exists) {
     const messages = chat2.data().messages;
-    return res.status(200).json({ messages: messages });
+    return res.status(200).json({ messages: messages, docId: friendId + userId });
   } else {
     return res.status(200).json({ error: "no messages" });
   }
